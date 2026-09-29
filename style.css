@@ -2251,3 +2251,407 @@ footer {
     padding: 16px 0 40px;
   }
 }
+
+/* ============================================================
+   LIQUID GLASS POLISH — same interface, more considered materials
+   ============================================================ */
+:root {
+  --glass-surface: rgba(24, 25, 32, .72);
+  --glass-surface-raised: rgba(35, 36, 44, .78);
+  --glass-edge: rgba(255, 255, 255, .12);
+  --glass-highlight: rgba(255, 255, 255, .08);
+  --glass-shadow: 0 18px 48px rgba(0, 0, 0, .34), 0 1px 0 rgba(255, 255, 255, .06) inset;
+  --control-radius: 12px;
+}
+
+/* Keep the original slow gradient alive beneath album-art backgrounds. */
+body {
+  background: linear-gradient(135deg, #050507 0%, #101018 48%, #080b10 100%);
+  background-size: 300% 300%;
+}
+
+/* Compact toolbar hierarchy; the buttons remain the existing controls. */
+header[role="banner"] {
+  width: min(100% - 32px, 1180px);
+  margin-top: clamp(28px, 6vh, 64px);
+  padding: 20px 22px 18px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(255,255,255,.075), rgba(255,255,255,.025));
+  box-shadow: 0 16px 44px rgba(0,0,0,.2), 0 1px 0 rgba(255,255,255,.08) inset;
+  -webkit-backdrop-filter: blur(18px) saturate(1.25);
+  backdrop-filter: blur(18px) saturate(1.25);
+}
+header[role="banner"] > div[style*="margin-top"] {
+  max-width: 100%;
+  flex-wrap: wrap;
+  margin-top: 18px !important;
+  padding: 7px;
+  gap: 7px;
+  border-color: rgba(255,255,255,.1);
+  border-radius: 16px;
+  background: rgba(8,9,13,.44);
+  box-shadow: 0 8px 24px rgba(0,0,0,.16), 0 1px 0 rgba(255,255,255,.06) inset;
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  backdrop-filter: blur(14px) saturate(1.15);
+}
+.title {
+  text-shadow: 0 2px 28px rgba(0,0,0,.28);
+}
+.subtle { margin-top: 8px; }
+
+/* The gold state used to replace titleSwoop with a filter-only shimmer.
+   Since the base title starts transparent and translated, it stayed hidden.
+   Run the entrance and shimmer together; they animate separate properties. */
+.title--gold {
+  animation: titleSwoop 1.5s ease-out .3s both, goldShimmer 3s ease-in-out 1.8s infinite;
+  text-shadow: none;
+}
+
+/* Floating browser shell with a separate, content-first player surface. */
+main[role="main"] { margin-top: clamp(22px, 4vh, 38px); }
+.card {
+  width: min(calc(100% - 32px), 1760px);
+  overflow: hidden;
+  border-color: rgba(255,255,255,.1);
+  border-radius: 24px;
+  background: linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.025));
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  backdrop-filter: blur(18px) saturate(1.15);
+}
+.card:hover { transform: none; }
+.card__header { padding: 15px 20px; }
+.card__body { padding: 14px; }
+.player-layout {
+  grid-template-columns: clamp(250px, 22vw, 350px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.sidebar {
+  max-height: clamp(340px, 70vh, 820px);
+  border-color: rgba(255,255,255,.11);
+  border-radius: 18px;
+  background: linear-gradient(155deg, rgba(37,38,46,.82), rgba(20,21,27,.76));
+  box-shadow: 0 12px 32px rgba(0,0,0,.24), 0 1px 0 rgba(255,255,255,.07) inset;
+  -webkit-backdrop-filter: blur(16px) saturate(1.15);
+  backdrop-filter: blur(16px) saturate(1.15);
+}
+.sidebar__search { padding: 12px; }
+.sidebar__search input {
+  min-height: 40px;
+  border-color: rgba(255,255,255,.1);
+  border-radius: 12px;
+  background: rgba(0,0,0,.22);
+  transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.sidebar__search input:focus {
+  outline: none;
+  border-color: rgba(184,196,255,.48);
+  background: rgba(0,0,0,.32);
+  box-shadow: 0 0 0 3px rgba(143,160,255,.12);
+}
+.sidebar__list { padding: 6px 8px 10px; }
+.sidebar__list li {
+  min-height: 42px;
+  margin: 2px 0;
+  padding: 7px 9px 7px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  transition: background .16s ease, border-color .16s ease, transform .16s ease;
+}
+.sidebar__list li:hover {
+  background: rgba(255,255,255,.075);
+  border-color: rgba(255,255,255,.055);
+}
+.sidebar__list li[aria-selected="true"] {
+  background: linear-gradient(110deg, rgba(255,255,255,.14), rgba(255,255,255,.075));
+  border-color: rgba(255,255,255,.13);
+  outline: none;
+  box-shadow: 0 1px 0 rgba(255,255,255,.08) inset, 0 4px 12px rgba(0,0,0,.12);
+}
+.sidebar-game-name { line-height: 1.35; }
+.fav-btn {
+  width: 32px;
+  height: 30px;
+  border-radius: 9px;
+  color: rgba(255,255,255,.55);
+  transition: color .16s ease, background .16s ease, transform .16s ease;
+}
+.fav-btn:hover, .fav-btn--on {
+  color: #ffdc75;
+  background: rgba(255,210,91,.1);
+}
+
+#game-frame {
+  min-width: 0;
+  padding: 7px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 20px;
+  background: linear-gradient(145deg, rgba(255,255,255,.09), rgba(255,255,255,.025));
+  box-shadow: 0 16px 38px rgba(0,0,0,.3), 0 1px 0 rgba(255,255,255,.09) inset;
+}
+#game-iframe {
+  height: clamp(380px, 70vh, 920px);
+  border-radius: 14px;
+  background: #08090d;
+}
+
+/* One tactile control language for the existing header and overlays. */
+#spotify-connect, #ugs-doc, #ambient-toggle, #sp-panel-open,
+#sp-panel-close, #toast-controls button, #music-exit, .music-btn,
+.sp-play-btn, .sp-reauth-btn {
+  border-radius: var(--control-radius);
+  transition: transform .16s ease, background .16s ease, border-color .16s ease,
+    box-shadow .16s ease, color .16s ease, filter .16s ease;
+}
+#spotify-connect {
+  background: linear-gradient(145deg, #ffdf78, #edbd45);
+  box-shadow: 0 4px 12px rgba(210,160,45,.16), 0 1px 0 rgba(255,255,255,.4) inset;
+}
+#spotify-connect:hover { box-shadow: 0 7px 18px rgba(210,160,45,.22), 0 1px 0 rgba(255,255,255,.48) inset; }
+#spotify-connect:disabled { cursor: default; filter: saturate(.68); }
+#ugs-doc, #ambient-toggle {
+  background: rgba(255,255,255,.07);
+  border-color: rgba(255,255,255,.13);
+  box-shadow: 0 1px 0 rgba(255,255,255,.07) inset;
+}
+#sp-panel-open {
+  background: rgba(29,185,84,.12);
+  border-color: rgba(29,185,84,.22);
+  box-shadow: 0 1px 0 rgba(255,255,255,.08) inset;
+}
+button:focus-visible, input:focus-visible, #music-progress-bar:focus-visible {
+  outline: 2px solid rgba(190,202,255,.9);
+  outline-offset: 3px;
+}
+
+/* Music controls and side panel share the browser's restrained glass material. */
+#sp-panel {
+  width: min(420px, 94vw);
+  background: rgba(20,21,27,.88);
+  border-left-color: rgba(255,255,255,.12);
+  box-shadow: -16px 0 46px rgba(0,0,0,.38), 1px 0 0 rgba(255,255,255,.05) inset;
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  backdrop-filter: blur(22px) saturate(1.2);
+}
+#sp-panel-backdrop { background: rgba(0,0,0,.38); }
+.sp-header { padding: 20px 22px 16px; }
+.sp-section { padding-left: 22px; padding-right: 22px; }
+.sp-now-card { border-radius: 16px; background: rgba(255,255,255,.065); }
+.sp-track-row { min-height: 56px; }
+.sp-play-btn { opacity: 1; }
+#music-overlay {
+  background: #090a10;
+  background-image: linear-gradient(135deg, rgba(18,20,29,.7), rgba(5,6,10,.82));
+}
+#music-overlay::before {
+  filter: blur(52px) brightness(.4) saturate(1.25);
+}
+#music-overlay::after {
+  background: linear-gradient(90deg, rgba(0,0,0,.12), rgba(0,0,0,.48));
+}
+#music-now { width: min(460px, 48vw); }
+#music-art {
+  border-radius: 22px;
+  box-shadow: 0 28px 70px rgba(0,0,0,.42), 0 1px 0 rgba(255,255,255,.16) inset;
+}
+#music-queue-panel {
+  background: rgba(18,19,25,.42);
+  border-left-color: rgba(255,255,255,.1);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1);
+  backdrop-filter: blur(14px) saturate(1.1);
+}
+#music-progress-bar { height: 5px; border-radius: 99px; cursor: pointer; }
+#music-progress-fill { border-radius: inherit; }
+.music-btn { border: 1px solid rgba(255,255,255,.1); }
+.music-btn--lg { box-shadow: 0 4px 16px rgba(0,0,0,.18); }
+
+/* A quiet glass caption keeps the screensaver artwork in front. */
+#idle-overlay .idle-center {
+  width: min(52vh, 500px);
+  height: min(52vh, 500px);
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 26px;
+  box-shadow: 0 32px 90px rgba(0,0,0,.48), 0 1px 0 rgba(255,255,255,.18) inset;
+}
+#idle-overlay .idle-meta {
+  left: clamp(18px, 4vw, 52px);
+  bottom: clamp(18px, 4vh, 46px);
+  max-width: min(72vw, 720px);
+  padding: 16px 20px;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 16px;
+  background: rgba(18,19,25,.48);
+  box-shadow: 0 12px 32px rgba(0,0,0,.2), 0 1px 0 rgba(255,255,255,.08) inset;
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  backdrop-filter: blur(14px) saturate(1.15);
+}
+
+/* Keep the intentional full-screen Easter egg cinematic and unobstructed. */
+#mcqueen-video-wrap { background: #050507; }
+#mcqueen-video { border: 1px solid rgba(255,255,255,.12); }
+
+@media (max-width: 980px) {
+  header[role="banner"] { padding: 18px 14px 16px; border-radius: 20px; }
+  .player-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .sidebar { max-height: 36vh; min-height: 180px; }
+  #game-frame { padding: 5px; border-radius: 16px; }
+  #game-iframe { height: 60vh; min-height: 320px; border-radius: 12px; }
+}
+@media (max-width: 600px) {
+  header[role="banner"] { width: calc(100% - 20px); margin-top: 14px; padding: 16px 10px 13px; }
+  .title { font-size: clamp(2rem, 10vw, 3rem); }
+  header[role="banner"] > div[style*="margin-top"] { width: 100%; justify-content: center; }
+  header[role="banner"] > div[style*="margin-top"] button { padding: 8px 10px; font-size: .76rem; }
+  .card { width: calc(100% - 20px); border-radius: 18px; }
+  .card__body { padding: 9px; }
+  .sidebar { max-height: 34vh; }
+  #game-iframe { height: 58vh; min-height: 280px; }
+  #toast { left: 10px; right: 10px; bottom: 10px; min-width: 0; max-width: none; gap: 10px; padding: 10px; }
+  #toast-img { width: 44px; height: 44px; }
+  #idle-overlay .idle-center { width: min(66vw, 40vh); height: min(66vw, 40vh); }
+  #idle-overlay .idle-meta { right: 14px; max-width: none; }
+  #sp-panel { width: min(420px, 100vw); }
+}
+@media (max-width: 800px) {
+  #music-overlay { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(220px, 1fr); }
+  #music-now { width: min(340px, 86vw); padding: 18px 16px 16px; gap: 18px; }
+  #music-art { width: min(100%, 38vh); }
+  #music-queue-panel { min-height: 220px; max-height: 42vh; overflow-y: auto; border-top: 1px solid rgba(255,255,255,.1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+
+/* Local game portal: the player now uses the full content width. */
+.player-layout {
+  display: block;
+  width: 100%;
+}
+#game-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  min-height: min(78vh, 960px);
+  padding: clamp(8px, 1.2vw, 14px);
+  border-radius: 24px;
+}
+.game-empty-state {
+  flex: 1;
+  min-height: clamp(390px, 66vh, 780px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(28px, 6vw, 72px) 22px;
+  text-align: center;
+  border: 1px solid rgba(255,255,255,.085);
+  border-radius: 17px;
+  background:
+    radial-gradient(ellipse at 50% 38%, rgba(255,255,255,.045), transparent 48%),
+    rgba(5,6,10,.35);
+}
+.game-empty-icon {
+  width: 60px;
+  height: 60px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 23px;
+  padding-left: 3px;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 19px;
+  background: linear-gradient(145deg, rgba(255,255,255,.15), rgba(255,255,255,.055));
+  color: rgba(255,255,255,.88);
+  box-shadow: 0 1px 0 rgba(255,255,255,.12) inset, 0 12px 30px rgba(0,0,0,.18);
+}
+.game-empty-state h3 {
+  margin: 0;
+  color: rgba(255,255,255,.94);
+  font-size: clamp(1.35rem, 2.6vw, 2rem);
+  font-weight: 650;
+  letter-spacing: -.035em;
+}
+.game-empty-state > p {
+  max-width: 430px;
+  margin: 12px 0 24px;
+  color: rgba(235,237,245,.67);
+  line-height: 1.65;
+}
+.load-game-btn {
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 14px;
+  background: linear-gradient(145deg, rgba(255,255,255,.19), rgba(255,255,255,.09));
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  box-shadow: 0 1px 0 rgba(255,255,255,.16) inset, 0 7px 20px rgba(0,0,0,.18);
+  cursor: pointer;
+  transition: transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.load-game-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255,255,255,.3);
+  background: linear-gradient(145deg, rgba(255,255,255,.25), rgba(255,255,255,.12));
+  box-shadow: 0 1px 0 rgba(255,255,255,.2) inset, 0 10px 24px rgba(0,0,0,.22);
+}
+.load-game-btn:active { transform: translateY(1px) scale(.985); }
+.game-player-toolbar {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 0 4px 1px;
+}
+.game-file-meta { min-width: 0; display: flex; align-items: baseline; gap: 9px; }
+.game-file-label {
+  flex: 0 0 auto;
+  color: rgba(235,237,245,.48);
+  font-size: .72rem;
+  font-weight: 650;
+  letter-spacing: .075em;
+  text-transform: uppercase;
+}
+.game-file-name {
+  min-width: 0;
+  overflow: hidden;
+  color: rgba(255,255,255,.85);
+  font-size: .88rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.load-game-btn--compact { min-height: 36px; padding: 0 13px; border-radius: 12px; font-size: .85rem; }
+.game-load-error { margin: 0; color: #ffb7b7; font-size: .86rem; }
+#game-iframe {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: clamp(390px, 70vh, 900px);
+  height: auto;
+  border-radius: 17px;
+  background: #08090d;
+}
+#game-iframe[hidden], #game-player-toolbar[hidden], #game-empty-state[hidden], #game-load-error[hidden] {
+  display: none !important;
+}
+
+@media (max-width: 980px) {
+  #game-frame { min-height: 70vh; }
+  .game-empty-state { min-height: 60vh; }
+  #game-iframe { min-height: 60vh; }
+}
+@media (max-width: 600px) {
+  #game-frame { min-height: 66vh; padding: 6px; border-radius: 18px; }
+  .game-empty-state { min-height: 58vh; padding: 28px 18px; border-radius: 13px; }
+  .game-empty-icon { width: 52px; height: 52px; border-radius: 16px; }
+  .game-player-toolbar { align-items: flex-start; }
+  .game-file-meta { flex-direction: column; gap: 3px; }
+  .game-file-name { max-width: 48vw; }
+  .load-game-btn--compact { flex: 0 0 auto; padding: 0 10px; font-size: .76rem; }
+  #game-iframe { min-height: 58vh; border-radius: 13px; }
+}
+
