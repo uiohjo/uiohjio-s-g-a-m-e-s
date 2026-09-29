@@ -30,7 +30,6 @@
     @media (prefers-reduced-motion: reduce) { .bg-layer { transform: none; } }
   </style>
 
-  <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
   <script src="script.js" defer></script>
 </head>
 <body>
@@ -60,7 +59,7 @@
   <div class="site">
     <header role="banner">
       <h1 id="title" class="title" aria-live="polite">Uiohjo's Games</h1>
-      <p class="subtle">UGS in easy access website. no pesky file downloads.</p>
+      <p class="subtle">A cozy portal for your self-contained HTML games.</p>
       <p id="rarity" class="rarity" role="status" aria-live="assertive">You rolled the GOLD variant. Nice.</p>
 
 <div style="margin-top: 15px; display: flex; gap: 10px;">
@@ -83,22 +82,29 @@
         </div>
         <div class="card__body">
           <div class="player-layout" aria-label="Game Player Layout">
-            <!-- Sidebar -->
-            <aside class="sidebar" aria-label="Game Picker">
-              <div class="sidebar__search">
-                <input id="game-search" type="search" placeholder="Search games..." aria-label="Search games">
-              </div>
-              <ul id="game-list" class="sidebar__list" role="listbox" aria-label="Games"></ul>
-            </aside>
-
-            <!-- Player -->
             <div class="player" id="game-frame" aria-label="Game Player">
+              <div id="game-empty-state" class="game-empty-state">
+                <div class="game-empty-icon" aria-hidden="true">▶</div>
+                <h3>Bring your own game</h3>
+                <p>Load a self-contained HTML game from your device. It stays local in your browser.</p>
+                <button id="load-game-btn" class="load-game-btn" type="button">Load Game</button>
+              </div>
+              <div id="game-player-toolbar" class="game-player-toolbar" hidden>
+                <div class="game-file-meta">
+                  <span class="game-file-label">Local game</span>
+                  <span id="game-file-name" class="game-file-name"></span>
+                </div>
+                <button id="replace-game-btn" class="load-game-btn load-game-btn--compact" type="button">Load Another Game</button>
+              </div>
+              <p id="game-load-error" class="game-load-error" role="status" aria-live="polite" hidden></p>
               <iframe id="game-iframe"
                       title="Game"
-                      sandbox="allow-scripts allow-same-origin allow-pointer-lock allow-popups"
+                      sandbox="allow-scripts allow-pointer-lock allow-popups"
                       referrerpolicy="no-referrer"
-                      loading="eager"></iframe>
+                      loading="eager"
+                      hidden></iframe>
             </div>
+            <input id="game-file-input" type="file" accept=".html,text/html" hidden>
           </div>
         </div>
       </section>
@@ -229,3 +235,4 @@
 
 </body>
 </html>
+
