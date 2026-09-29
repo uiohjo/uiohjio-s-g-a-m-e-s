@@ -593,18 +593,6 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // about:blank launcher (kept but safe)
-  document.getElementById("open-blank")?.addEventListener("click", () => {
-    const newPage = window.open("about:blank", "_blank");
-    if (!newPage) return alert("Popup blocked! Allow popups for this site.");
-    newPage.document.write(`
-      <!DOCTYPE html><html><head><title>Classroom</title>
-      <style>html,body{margin:0;padding:0;overflow:hidden;background:black}iframe{width:100vw;height:100vh;border:none}</style>
-      </head><body><iframe src="https://binglover.github.io/"></iframe></body></html>
-    `);
-    newPage.document.close();
-  });
-
   /* --- Idle mode activity listeners --- */
   const activityEvents = ['pointerdown','mousemove','keydown','wheel','touchstart','scroll'];
   activityEvents.forEach(ev => window.addEventListener(ev, resetIdle, { passive: true }));
@@ -612,147 +600,175 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 /* -------------------------------
-   Games catalog + player
+   Local single-file game player
 -------------------------------- */
-const GAME_JSON = "games/games.json";
-let GAMES = [];
-let currentGame = null;
+let activeGameObjectUrl = null;
+const gameObjectUrls = new Set();
 
-function $(sel, root = document) { return root.querySelector(sel); }
-function $all(sel, root = document) { return Array.from(root.querySelectorAll(sel)); }
-
-async function loadCatalog() {
-  try {
-    const r = await fetch(GAME_JSON, { cache: "no-store" });
-    if (!r.ok) throw new Error("catalog fetch failed");
-    GAMES = await r.json();
-    renderSidebar(GAMES);
-    if (GAMES.length) selectGame(GAMES[0].slug);
-  } catch (e) {
-    console.warn("Failed to load games.json:", e);
-    selectGame("plumet2");
-  }
+function revokeGameObjectUrl(url) {
+  if (!url || !gameObjectUrls.has(url)) return;
+  URL.revokeObjectURL(url);
+  gameObjectUrls.delete(url);
 }
 
-/* ===== Favorites ===== */
-const FAV_KEY = "fav_games";
-function getFavs() {
-  try { return new Set(JSON.parse(localStorage.getItem(FAV_KEY) || "[]")); }
-  catch { return new Set(); }
-}
-function saveFavs(set) {
-  localStorage.setItem(FAV_KEY, JSON.stringify([...set]));
-}
-function toggleFav(slug) {
-  const favs = getFavs();
-  favs.has(slug) ? favs.delete(slug) : favs.add(slug);
-  saveFavs(favs);
-  renderSidebar(currentSearchList());
-}
-function currentSearchList() {
-  const input = el("game-search");
-  const q = input?.value.toLowerCase().trim() || "";
-  return !q ? GAMES : GAMES.filter(g =>
-    g.title.toLowerCase().includes(q) ||
-    (g.tags || []).some(t => t.toLowerCase().includes(q))
-  );
+function openGameFilePicker() {
+  el("game-file-input")?.click();
 }
 
-function renderSidebar(list) {
-  const ul = el("game-list");
-  if (!ul) return;
-  ul.innerHTML = "";
+function prepareInlineRuffleGame(file, html, baseUrl) {
+  const hasInlineRuffle = /\bRufflePlayer\b/i.test(html) &&
+    !/<script\b[^>]*\bsrc\s*=\s*["'][^"']*ruffle/i.test(html);
+  const rewritesDocument = /\bdocument\.write\s*\(/i.test(html);
+  if (!hasInlineRuffle) return file;
 
-  const favs = getFavs();
-
-  const sorted = [...list].sort((a, b) => {
-    const af = favs.has(a.slug), bf = favs.has(b.slug);
-    if (af && !bf) return -1;
-    if (!af && bf) return 1;
-    return 0;
-  });
-
-  for (const g of sorted) {
-    const isFav = favs.has(g.slug);
-    const li = document.createElement("li");
-    li.role = "option";
-    li.dataset.slug = g.slug;
-    if (currentGame && currentGame.slug === g.slug) li.setAttribute("aria-selected", "true");
-
-    const nameSpan = document.createElement("span");
-    nameSpan.className = "sidebar-game-name";
-    nameSpan.textContent = g.title;
-
-    const starBtn = document.createElement("button");
-    starBtn.className = "fav-btn" + (isFav ? " fav-btn--on" : "");
-    starBtn.setAttribute("aria-label", isFav ? "Unfavorite" : "Favorite");
-    starBtn.textContent = isFav ? "\u2605" : "\u2606";
-    starBtn.addEventListener("click", e => {
-      e.stopPropagation();
-      toggleFav(g.slug);
-    });
-
-    li.appendChild(nameSpan);
-    li.appendChild(starBtn);
-    li.addEventListener("click", () => selectGame(g.slug));
-    ul.appendChild(li);
-  }
-}
-
-function selectGame(slug) {
-  const g = GAMES.find(x => x.slug === slug) || null;
-  currentGame = g;
-  $all("#game-list li").forEach(li => {
-    li.setAttribute("aria-selected", li.dataset.slug === slug ? "true" : "false");
-  });
-  if (!g) {
-    loadSwfOrIframe({ type: "swf", path: "Plumet2.swf", title: "Plumet 2" });
-    return;
-  }
-  loadSwfOrIframe(g);
-}
-
-function loadSwfOrIframe(game) {
-  const frame  = el("game-frame");
-  const iframe = el("game-iframe");
-  if (!frame) return;
-
-  if (game.type === "html") {
-    if (iframe) {
-      frame.style.display = "grid";
-      iframe.style.display = "block";
-      iframe.src = game.path;
+  const addBaseTag = source => {
+    const firstScript = /<script\b[^>]*>/i.exec(source);
+    const markupEnd = firstScript ? firstScript.index : source.length;
+    const markup = source.slice(0, markupEnd);
+    if (/<base\b/i.test(markup)) return source;
+    const tag = `<base href=${JSON.stringify(baseUrl)}>`;
+    const head = /<head\b[^>]*>/i.exec(markup);
+    if (head) {
+      const insertAt = head.index + head[0].length;
+      return source.slice(0, insertAt) + tag + source.slice(insertAt);
     }
-    return;
+    const html = /<html\b[^>]*>/i.exec(markup);
+    if (html) {
+      const insertAt = html.index + html[0].length;
+      return source.slice(0, insertAt) + `<head>${tag}</head>` + source.slice(insertAt);
+    }
+    const doctype = /<!doctype\b[^>]*>/i.exec(markup);
+    const insertAt = doctype ? doctype.index + doctype[0].length : 0;
+    return source.slice(0, insertAt) + `<head>${tag}</head>` + source.slice(insertAt);
+  };
+
+  let preparedHtml = addBaseTag(html);
+  if (rewritesDocument) {
+    const shim = `<script>(function(){
+    const originalWrite = Document.prototype.write;
+    const baseTag = '<base href=' + JSON.stringify(${JSON.stringify(baseUrl)}) + '>';
+    const addBaseTag = source => {
+      const firstScript = /<script\\b[^>]*>/i.exec(source);
+      const markupEnd = firstScript ? firstScript.index : source.length;
+      const markup = source.slice(0, markupEnd);
+      if (/<base\\b/i.test(markup)) return source;
+      const head = /<head\\b[^>]*>/i.exec(markup);
+      if (head) {
+        const insertAt = head.index + head[0].length;
+        return source.slice(0, insertAt) + baseTag + source.slice(insertAt);
+      }
+      const html = /<html\\b[^>]*>/i.exec(markup);
+      if (html) {
+        const insertAt = html.index + html[0].length;
+        return source.slice(0, insertAt) + '<head>' + baseTag + '</head>' + source.slice(insertAt);
+      }
+      return '<head>' + baseTag + '</head>' + source;
+    };
+    Document.prototype.write = function(...parts) {
+      parts = parts.map(part => {
+        if (typeof part !== 'string') return part;
+        return addBaseTag(part);
+      });
+      return originalWrite.apply(this, parts);
+    };
+  })();</scr` + `ipt>`;
+
+    // Some bundled games replace their document with document.write(). Keep
+    // the base in that generated document too, before its inline Ruffle runs.
+    const firstScript = /<script\b[^>]*>/i.exec(preparedHtml);
+    preparedHtml = firstScript
+      ? preparedHtml.slice(0, firstScript.index) + shim + preparedHtml.slice(firstScript.index)
+      : shim + preparedHtml;
   }
 
-  if (game.type === "swf") {
-    if (window.RufflePlayer && frame) {
-      const r = window.RufflePlayer.newest();
-      const player = r.createPlayer();
-      frame.innerHTML = "";
-      frame.appendChild(player);
-      player.load(game.path);
+  // Inline Ruffle derives a relative runtime URL from document.baseURI. A
+  // blob: URL cannot be used as that relative base, so give the in-memory
+  // game document a normal site-relative base without changing the source file.
+  return new Blob([preparedHtml], { type: "text/html;charset=utf-8" });
+}
+
+function wireLocalGamePlayer() {
+  const fileInput = el("game-file-input");
+  const iframe = el("game-iframe");
+  const emptyState = el("game-empty-state");
+  const toolbar = el("game-player-toolbar");
+  const filename = el("game-file-name");
+  const error = el("game-load-error");
+  if (!fileInput || !iframe || !emptyState || !toolbar || !filename || !error) return;
+
+  el("load-game-btn")?.addEventListener("click", openGameFilePicker);
+  el("replace-game-btn")?.addEventListener("click", openGameFilePicker);
+
+  let selectionVersion = 0;
+  fileInput.addEventListener("change", async () => {
+    const thisSelection = ++selectionVersion;
+    const file = fileInput.files?.[0];
+    fileInput.value = ""; // Let the same file be selected again later.
+    if (!file) return;
+
+    error.hidden = true;
+    if (!/\.html$/i.test(file.name)) {
+      error.textContent = "Choose a self-contained .html game file.";
+      error.hidden = false;
       return;
     }
-    if (iframe) iframe.src = "about:blank";
-  }
+
+    let nextUrl;
+    try {
+      const html = await file.text();
+      if (thisSelection !== selectionVersion) return;
+      const baseUrl = new URL("./", window.location.href).href;
+      const gameFile = prepareInlineRuffleGame(file, html, baseUrl);
+      nextUrl = URL.createObjectURL(gameFile);
+    } catch (e) {
+      if (thisSelection !== selectionVersion) return;
+      error.textContent = "This file could not be opened in the game player.";
+      error.hidden = false;
+      return;
+    }
+
+    const previousUrl = activeGameObjectUrl;
+    activeGameObjectUrl = nextUrl;
+    gameObjectUrls.add(nextUrl);
+    iframe.addEventListener("load", () => revokeGameObjectUrl(previousUrl), { once: true });
+    iframe.src = nextUrl;
+    iframe.hidden = false;
+    emptyState.hidden = true;
+    toolbar.hidden = false;
+    filename.textContent = file.name;
+    filename.title = file.name;
+  });
+
+  window.addEventListener("pagehide", () => {
+    selectionVersion += 1;
+    for (const url of gameObjectUrls) URL.revokeObjectURL(url);
+    gameObjectUrls.clear();
+    activeGameObjectUrl = null;
+  }, { once: true });
 }
 
-function wireSearch() {
-  const input = el("game-search");
-  if (!input) return;
-  input.addEventListener("input", () => {
-    const q = input.value.toLowerCase().trim();
-    if (q === "mejiro mcqueen") {
-      input.value = "";
-      renderSidebar(currentSearchList());
+window.addEventListener("DOMContentLoaded", wireLocalGamePlayer, { once: true });
+
+/* Deliberate title multi-click Easter egg trigger. */
+window.addEventListener("DOMContentLoaded", () => {
+  const title = el("title");
+  if (!title) return;
+  let clicks = 0;
+  let resetTimer = null;
+  title.addEventListener("click", () => {
+    if (clicks === 0) {
+      resetTimer = setTimeout(() => { clicks = 0; resetTimer = null; }, 1800);
+    }
+    clicks += 1;
+    if (clicks >= 5) {
+      clearTimeout(resetTimer);
+      resetTimer = null;
+      clicks = 0;
       triggerMcQueenCurse();
       return;
     }
-    renderSidebar(currentSearchList());
   });
-}
+}, { once: true });
 
 /* ============================================================
    MEJIRO MCQUEEN CURSE — You searched for this. You did this.
@@ -834,36 +850,6 @@ function triggerMcQueenCurse() {
 
 }
 
-/* Open-blank -> current HTML game if available */
-(function patchOpenBlank() {
-  const btn = el("open-blank");
-  if (!btn) return;
-  btn.addEventListener("click", (e) => {
-    e.preventDefault();
-    const target = (currentGame && currentGame.type === "html") ? currentGame.path : "https://binglover.github.io/";
-    const w = window.open("about:blank", "_blank", "noopener,noreferrer");
-    if (!w) return alert("Popup blocked! Allow popups for this site.");
-    w.opener = null;
-    w.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Classroom</title>
-          <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob:; frame-src *; connect-src *; img-src * data: blob:; media-src *;">
-          <style>html,body{margin:0;padding:0;background:black;overflow:hidden}iframe{width:100vw;height:100vh;border:none}</style>
-        </head>
-        <body><iframe src="${target}"></iframe></body>
-      </html>
-    `);
-    w.document.close();
-  }, { once: true });
-})();
-
-/* Boot catalog */
-window.addEventListener("DOMContentLoaded", () => {
-  wireSearch();
-  loadCatalog();
-});
 /* ============================================================
    SPOTIFY PANEL — append this to the bottom of script.js
    Also update your SCOPES constant (around line 436) to:
@@ -1376,3 +1362,4 @@ window.addEventListener('DOMContentLoaded', () => {
   const _origShowToast = showToast;
   window._musicModeTrackUpdate = () => { if (musicMode.active) musicMode.refresh(); };
 });
+
